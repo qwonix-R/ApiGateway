@@ -1,0 +1,65 @@
+version: '3.8'
+services:
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    networks:
+      - api-network
+    depends_on:
+      - pinger-api
+      - authorization-api
+      - book-api
+
+  pinger-api:
+    image: pinger-api-image
+    ports:
+      - "5001:5001"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://0.0.0.0:5001
+    networks:
+      - api-network
+    restart: unless-stopped
+
+
+  authorization-api:
+    image: authorization-api-image
+    container_name: authorization-api
+    ports:
+      - "5002:5002"
+    environment:
+      - RUST_LOG=info
+      - APP_PORT=5002
+    networks:
+      - api-network
+      - db-network
+    restart: unless-stopped
+
+  book-api:
+    image: book-api-image
+    container_name: book-api
+    volumes:
+      - book-files:/app/uploads
+    ports:
+      - "5003:5003"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://0.0.0.0:5003
+    networks:
+      - api-network
+      - db-network
+    restart: unless-stopped
+
+networks:
+  api-network:
+    driver: bridge
+  db-network:
+    external: true
+    name: db-network
+volumes:
+  book-files:
